@@ -1,0 +1,525 @@
+SQl Queries 
+
+
+--- second highest salary
+
+with cte as (select row_number() over(order by salary desc) res, employee_id, salary from employees  ) 
+select employee_id,salary from cte where res=2
+
+
+
+--- nth highest Salary (5th)
+Can use row_number also but then multiple records wont be returned
+
+with cte as (select dense_rank() over(order by salary desc) res, employee_id, salary from employees  ) 
+select employee_id,salary from cte where res=4
+
+
+
+--- Salary greater than average salary
+
+select employee_id, salary from employees where salary > 
+(select avg(salary) from employees )
+
+
+--- current date and time
+
+select current_timestamp from dual;
+select sysdate from dual;
+
+
+
+
+----- delete duplicate
+
+
+delete from emp_for_testing where rowid in(
+select rid from (
+select rowid rid, row_number() over (partition by employee_id order by employee_id) row_n from emp_for_testing order by employee_id) 
+where row_n >1)
+
+
+--- top 10 records
+
+select * from 
+(select * from employees)
+where rownum <=10
+
+
+
+--- common records from two tables
+
+select * from employees 
+intersect
+select * from emp_for_testing
+
+--- different records 
+
+select * from  emp_for_testing
+minus
+select * from employees
+
+
+--- last 10 records
+
+
+select * from 
+(select * from employees order by employee_id desc)
+where rownum <= 10
+
+
+---- --- top 5 employees with highest salaries
+
+with cte as 
+( select employee_id, salary, rank() over (order by salary desc) as rn from employees)
+select * from cte where rn <= 5
+
+
+--- top 5 employees with highest salaries
+
+with cte as 
+( select employee_id, salary,department_id, rank() over (partition by department_id order by salary desc) as rn from employees)
+select * from cte where rn <= 5
+
+
+--- total salary of all employees
+
+select sum(salary) as sum_of_sal_all_employees from employees 
+
+
+
+--- employees joined in year( hire_date) 2008
+
+select * from employees where to_char(hire_date,'yy')='08'
+
+------employees joinedon date( hire_date) - 18
+
+select * from employees where to_char(hire_date,'dd')='18'
+
+
+----
+
+--- employee name starts with A
+
+select * from employees where first_name like 'A%'
+
+
+
+-- employee with no manager
+
+select * from employees where manager_id is null;
+
+
+
+-------- department with highest number of employees
+with cte as (
+select department_id, count(employee_id) coun
+from employees group by department_id order by coun desc 
+)
+select * from cte where rownum=1
+
+
+
+------- employees with highest salary in each department 
+
+with cte as (
+select employee_id, salary, department_id, rank() over(partition by department_id order by salary desc) ranking
+from employees)
+select * from cte where ranking =1 
+
+
+
+---- --- update salary of all employees by 10%
+
+update emp_for_testing_sal set salary=salary*1.1;
+
+
+---- find employees whose sal is in between 6000-8000
+
+select * from employees where salary between 6000 and 8000;
+
+
+
+--- how to find employee who joined the organization in the end
+
+with cte as 
+(
+select employee_id, first_name, first_value(hire_date) over ( order by hire_date desc) from employees 
+)
+select * from cte where rownum=1
+
+
+
+---  how to find employee who joined the organization first and last
+
+with cte as 
+(
+select employee_id, first_name, first_value(hire_date) over ( order by hire_date desc) from employees 
+),
+ cte2 as 
+(
+select employee_id, first_name, first_value(hire_date) over ( order by hire_date ) from employees 
+)
+select * from cte2 where rownum=1
+union 
+select * from cte where rownum =1
+
+
+
+--- department with lowest average sal
+
+with cte as (
+select department_id, avg(salary) over(partition by department_id) as avg1 from employees
+)
+select department_id from cte where rownum=1 order by avg1 
+
+
+
+--- delete all employees from department number 20
+
+
+delete from emp_for_testing_sal where department_id = 20
+
+
+
+-- employees in company for more than 5 years
+
+
+select * from employees where trunc(sysdate)-trunc(hire_date) > 1825
+
+
+------ second largest value 
+
+with cte as (
+select employee_id,salary, rank() over(order by salary desc) ra from employees )
+select * from cte where ra=2
+
+
+--- remove records but keep table structure 
+Truncate table emp_for_testing_sal;
+
+
+
+--- get records in XML format 
+
+
+select xmlforest(employee_id, salary).getClobVal() from employees;
+
+
+
+
+--- current month name from date
+
+select to_char(sysdate, 'mon') from dual
+
+
+---- string into lower 
+
+select lower('ISHA') from dual
+
+
+
+--- employee who have no subordinates
+
+<Have to create data>
+
+------ total sales per customer in customer table --- not tested as data is missing
+
+select cust_id, sum(sales) over ( partition by cust_id order by sales) from customers; 
+
+
+
+
+--- test if table is empty or not 
+
+with cte as (select count(*) count_n from employees)
+select 
+case when count_n=0 then 'Empty'
+else 'Not Empty'
+end
+from cte
+
+
+
+------- second highest salary for each department
+with cte as 
+(select department_id, salary, rank() over (partition by department_id order by salary desc) as ran from employees)
+select * from cte where ran=2
+
+
+
+------- whose salary is multiple of 1000
+
+select employee_id from employees where mod(salary,1000)=0
+
+
+
+
+--- column with null value
+select * from employees where manager_id is null 
+
+
+
+
+
+--- number of  employee in job_id
+with cte as (
+select count(employee_id) over (partition by job_id order by job_id) as num, job_id  from employees
+)
+select distinct * from cte 
+
+
+
+
+---- names end with n
+
+
+select * from employees where first_name like '%n';
+
+
+-- employee working in both departments = 101 and 102
+
+with cte as (
+select count(employee_id) over (partition by employee_id) as count, department_id, employee_id from emp_for_testing
+where department_id in (102,101)
+)
+select distinct * from cte where count > 1
+
+
+
+---- Employee with same salary
+
+with cte as (
+select count(employee_id) over (partition by salary order by salary) number_of_emp_with_same_sal, salary, employee_id
+from employees )
+select distinct * from cte
+
+
+-- update salary based on department
+
+update emp_for_testing set salary=case 
+when department_id=100 then salary+100 
+when department_id=101 then salary + 200
+end
+
+
+
+---- list all employees with null department
+
+select * from employees where department_id= null;
+
+
+----maximum and minimum salary from department
+
+select department_id, min(salary), max(salary) from employees group by department_id order by department_id
+
+
+
+
+--- department wise total and average salary
+select department_id, sum(salary), avg(salary) from employees group by department_id order by department_id
+
+
+
+--- 46  --- employee and manager  joined in same year
+
+SELECT e.employee_id, m.manager_id, e.hire_date as employee_sal, m.hire_date as manager_sal
+FROM employees e 
+JOIN employees m ON e.manager_id = m.employee_id 
+where to_char(e.hire_date, 'yy')= to_char(m.hire_date, 'yy')
+ORDER BY e.employee_id;
+
+
+
+
+
+--- count number of employees whose name starts and end with same letter
+with cte as (
+select substr(first_name,1,1 ) as f, substr(first_name,-1,1) as l, first_name from emp_for_testing where substr(first_name,1,1 )=substr(first_name,-1,1))
+select count(*) from cte;
+
+
+
+
+----Emp_name and salary in one string 
+
+
+select first_name||last_name||" "||salary as output from employees;
+
+
+--- employee whose salary is higher than manager_id
+
+SELECT e.employee_id, m.manager_id, e.salary as employee_sal, m.salary as manager_sal
+FROM employees e 
+JOIN employees m ON e.manager_id = m.employee_id 
+where e.salary>m.salary
+ORDER BY e.employee_id;
+
+
+
+
+---employee who are in department with less than 3 employees
+
+
+select * from employees where department_id in(
+with cte as (
+select distinct(department_id), count(employee_id) over ( partition by department_id order by department_id) as count
+from employees
+)
+select department_id from cte where count <3)
+
+
+
+---employee with same first_name
+
+with cte as (
+select first_name, count(employee_id) over ( partition by first_name order by first_name) co
+from employees )
+select distinct * from cte where co >1
+
+or 
+
+with cte as (
+select employee_id, first_name, count(employee_id) over ( partition by first_name order by first_name) co
+from employees )
+select distinct * from cte where co >1
+
+
+---- employees in company from more than 20 years
+
+select employee_id
+from employees where to_char(hire_date, 'yy')> (to_char(sysdate, 'yy') - 20)
+
+
+--- delete employees in company from more than 20 years
+
+
+delete from employees where employee_id in ( select employee_id
+from employees where to_char(hire_date, 'yy')> (to_char(sysdate, 'yy') - 20))
+
+
+
+---- list of employees where manager id is 100
+
+
+
+select employee_id
+from employees where manager_id = 100
+
+
+
+
+--- top 3 highest paid employees in each department
+
+with cte as(
+select department_id, rank() over(partition by department_id order by salary desc) as ranking, salary
+from employees )
+select * from cte where ranking <=3
+
+
+
+------- employee with more than 20 years of experience in each department
+
+
+select to_char(hire_date, 'yy') as hire_year, employee_id 
+from employees where to_char(sysdate, 'yy')-20 >to_char(hire_date, 'yy')
+
+
+
+--- 56--- need more data to write this query as we need data about employees doing hiring  to select employees who have not hired anyone.
+
+
+
+--- employee earning more than the average salary of their department
+
+
+
+with cte as(
+select employee_id, salary, department_id,  avg(salary) over ( partition by department_id order by department_id) as avg_sal from employees)
+select distinct * from cte where avg_sal < salary
+
+
+
+---- all managers with more than 5 subordinates
+
+
+with cte as (
+select e.manager_id,count(employee_id) over(partition by manager_id) count_e from employees e
+where e.employee_id in
+(select manager_id from employees m))
+select distinct * from cte where count_e > 5
+
+
+--- change hire date format
+
+
+select to_char(hire_date, 'yy/mon/dd') as hire_year, employee_id 
+from employees
+
+
+
+------- employees with top 10% salary
+
+with cte as (
+select employee_id, PERCENT_RANK () over (order by salary desc) as rank_n from employees)
+select * from cte
+where rank_n > .9
+
+
+
+
+---- employee grouping by hire_year 
+
+select employee_id, 
+case 
+when to_char(hire_date, 'yyyy')  = 2003 then 'Yo-yo'
+else 'No-No'
+end 
+from employees
+
+
+
+--- average salary of top 5 highest paid in department
+
+with cte as 
+(select department_id, salary,  rank() over (partition by department_id order by salary desc) as ranking from employees)
+select department_id, avg(salary) as avg_sal from cte where ranking <=5 group by department_id;
+
+
+----
+
+65) sales table unavailable
+
+66) same logic of to_char
+
+67) employee birthday not available but same logic is used multiple times in queries above
+
+68) grouping salary range
+
+
+select employee_id, 
+case 
+when salary > 8000 then 'too low'
+when salary between 8001 and 15000 then 'accepatable'
+else 'Yooooooooo waooooo'
+end
+as salary_desc
+from employees
+
+
+69) where bonus is null;
+
+70) with cte as(
+select job_id, avg(salary) over (partition by job_id) avgsal, min(salary) over (partition by job_id) mins, max(salary) over (partition by job_id) maxs
+from employees)
+select distinct * from cte
+
+
+
+
+
+
+
+
+
+
