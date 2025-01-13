@@ -1,0 +1,962 @@
+----
+weather table temperature comparison -197 sql hub - HR db
+Given a Weather table, write a SQL query to find all dates' Ids with higher
+temperature compared to its previous (yesterday's) dates.
++---------+------------------+------------------+
+| Id(INT) | RecordDate(DATE) | Temperature(INT) |
++---------+------------------+------------------+
+| 1 | 2015-01-01 | 10 |
+| 2 | 2015-01-02 | 25 |
+| 3 | 2015-01-03 | 20 |
+| 4 | 2015-01-04 | 30 |
++---------+------------------+------------------+
+For example, return the following Ids for the above Weather table:
++----+
+| Id |
++----+
+| 2 |
+| 4 |
++----+
+
+
+with cte as
+(select id1,
+dater ,
+phone_no as temp, 
+lag(phone_no,1)  OVER (ORDER BY id1) as lagged 
+
+--(phone_no - lag(phone_no,1,0)  OVER (ORDER BY id1)) as gap
+from prac_test)
+select * from cte
+where temp > lagged
+
+-----
+
+511- page 12 sql hub
+
+CREATE TABLE TABLE2 
+(
+  p_id NUMBER 
+, d_id NUMBER 
+, edate DATE 
+, games_played NUMBER 
+);
+
+
+select distinct p_id, min(edate) over (partition by p_id ) from table2
+
+
+select distinct p_id, min(d_id) over (partition by p_id ) from table2
+
+
+select p_id, games_played, edate, sum(games_played) over (partition by p_id order by p_id,edate) from table2
+order by p_id
+
+----
+
+570 - page 16 
+
+with cte as(
+select e.employee_id as employeeid,
+m.employee_id as managerid
+from employees e
+inner join employees m
+on e.manager_id=m.employee_id
+order by e.employee_id),
+
+ cte1 as(
+select distinct count(employeeid) over (partition by managerid order by managerid) as count1, managerid from cte)
+
+select * from cte1 
+where count1>5
+
+
+-----
+
+577 - page 17
+
+select e.first_name
+from employees e 
+inner join 
+emp_bonus b
+on 
+e.employee_id=b.emp_id
+where b.bonus < 1000
+------
+
+
+586. Customer Placing the Largest Number of Orders
+Page 19
+
+
+with cte as(
+select 
+c_num, count(o_num) over (PARTITION by c_num) as countn
+from orders
+),
+cte2 as (
+select  distinct  *  from cte 
+order by countn desc )
+select c_num from cte2 where rownum=1
+
+----
+
+
+596. Classes More Than 5 Students
+
+using CTE
+
+with cte as ( 
+select distinct count(name) over (partition by subject) as countn, subject
+from student_class 
+)
+select * from cte where countn>5
+
+Using Subquery 
+
+select countn, subject from 
+(select distinct count(name) over (partition by subject) as countn, subject
+from student_class)
+where countn > 5
+
+-----
+603. Consecutive Available Seats pg 24
+
+source 
+seat 	flag
+10	1
+20	0
+30	1
+40	1
+50	1
+60	0
+70	1
+80	1
+
+
+o/p 
+
+30
+40
+50
+70
+80
+
+
+with cte as
+(select 
+seat, 
+flag,
+row_number() over (partition by flag order by seat) as groups1,
+row_number() over (order by seat) as rownum1,
+((row_number() over (order by seat)) - (row_number() over (partition by flag order by seat)) ) as value1
+from cinema),
+
+cte2 as
+(
+select seat, min(seat) over (partition by value1 order by value1) as min1, 
+max(seat) over (partition by value1 order by value1) as max1, 
+count(seat) over (partition by value1 order by value1) as countseat 
+from cte
+where flag=1
+)
+
+select seat from cte2 where countseat>1
+
+
+
+---------
+607. Sales Person
+
+(tricky in real scenario)
+
+select * from salesperson spp where spp.name not in
+(with cte as 
+(
+select sp.name as spn, sp.sale_id, coalesce(spo.com_id,0) as co
+from salesperson sp
+left join salesp_orders spo 
+on sp.sale_id=spo.sales_id 
+)
+select spn from cte where cte.co=1 
+)
+
+
+----
+619. Biggest Single Number
+
+
+with cte as
+(select num, count(num) over (partition by  num order by num) as cou
+from one_field )
+select max(num) from cte where cou=1
+
+
+----
+
+626 - page 33
+
+
+select 
+    case
+        when mod(region_id,2)=0 then region_id -1
+        when region_id< (select max(region_id) from regions) then region_id+1
+        else region_id
+    end as rid,
+    region_name
+from regions
+
+----
+
+627. Swap Salary
+
+
+select 
+case
+when region_name='f' then 'm'
+else 'f'
+end as gender, region_id
+from two_column
+
+
+----
+
+q: 1045
+
+with cte as(
+select count(ok.o_num) over (partition by ok.c_num) as count, ok.c_num as cust_id, ok.o_num
+from  orders_key ok )
+select distinct cust_id from cte where count =(select count(*) from one_field)
+
+
+
+
+----
+
+1050 (page 36)
+
+with cte as (select count(dir_id) over (partition by actor_id,dir_id ) as pair_count, actor_id, dir_id
+from actor_dir) 
+select distinct * from cte where pair_count>=3
+
+
+
+-----
+1075
+
+select distinct
+round(avg(e.exp) over (partition by p.proj_id),2) as average, 
+p.proj_id
+from proj_sql p
+inner join empl_sql e
+on p.emp_id=e.emp_id
+
+
+------
+
+1076
+
+with cte as(
+select distinct
+count(e.emp_id) over (partition by p.proj_id) as count1,
+p.proj_id as proj
+from proj_sql p
+inner join empl_sql e
+on p.emp_id=e.emp_id)
+select proj,count1 from cte where rownum=1
+
+
+----
+
+
+
+1077 page 46 
+
+with cte as (
+select
+p.proj_id as pr,
+p.emp_id as eid, 
+e.exp as expr,
+max(e.exp) over (partition by p.proj_id) as exp_max
+from proj_sql p
+inner join empl_sql e
+on p.emp_id=e.emp_id)
+select pr,eid from cte where expr=exp_max
+
+
+----
+1082
+
+
+with cte as
+(
+select sum(price) over ( partition by seller_id) as sum1,
+seller_id 
+from sq_sales
+),
+cte2 as 
+(
+select max(sum1) as max_v from cte
+)
+select distinct c.seller_id
+from  cte c
+JOIN cte2 c2
+on 
+c.sum1=c2.max_v
+
+
+
+
+-----
+1083 page 50
+
+select ss.buyer_id
+from sq_product sp
+inner join sq_sales ss
+on ss.p_id=sp.p_id
+and product_name='s8' 
+and ss.buyer_id not in (
+            select ss.buyer_id
+            from sq_product sp
+            inner join sq_sales ss
+            on ss.p_id=sp.p_id 
+            and product_name='iphone')
+
+-----
+
+1112 : page 54
+
+
+with cte as (
+select grade, stu_id, course_id, 
+max(grade) over ( partition by stu_id order by stu_id) as max_num
+from student_class  
+),
+cte2 as
+(
+select  stu_id, course_id, max_num, grade from cte where max_num=grade
+), cte3 as (
+select c2.stu_id, c2.course_id as cid, c2.grade, min(c2.course_id) over (partition by c2.grade) as min_id from cte2 c2)
+select * from cte3 where min_id=cid
+
+
+
+-----
+
+
+1126
+
+with cte as (
+select business_id, event_type, occurances as occ, 
+count(occurances) over (partition by business_id) as coun_event_type,
+avg(occurances) over (partition by event_type) as avg_occ
+from test_table  order by business_id )
+select * from cte
+where coun_event_type>1 and occ>avg_occ
+
+------
+
+
+1141
+
+with cte as 
+(
+select user_id, session_id, activity_dt, 
+count(distinct user_id) over (partition by to_date(activity_dt, 'dd-mm-yyyy') ) as count_n
+from test_table
+
+) select distinct activity_dt, count_n from cte where count_n > 1
+
+
+
+
+
+----
+
+ 1142. User Activity f
+
+with cte as 
+(
+select distinct  user_id,
+count( session_id) over (partition by user_id) as count_session
+from test_table  where activity_time='es'
+),
+cte2 as (
+select
+count(user_id) as count_user, 
+sum(count_session) as session_count
+from cte)
+select session_count/count_user from cte2 
+
+
+
+----
+
+ 1148. Article View
+
+select distinct e.author_id
+from test_table e
+ join test_table m
+on e.viewer_id=m.author_id
+
+
+----
+
+
+1164 pg 62
+
+with cte as
+(
+select distinct p_id, max(new_price) over  (partition by p_id) as max_price, 
+max(change_date) over (partition by p_id) as max_change_date
+from sql_products
+)
+select 
+case when max_change_date<='17-JAN-25'
+then max_price
+else 10
+end as new_price_c1, 
+max_price, p_id, max_change_date
+from cte
+
+
+-----
+
+1173. Immediate Food
+
+with cte as (
+select count(*) as imm_order
+from test_table2
+where order_date=pref_del_dt
+),
+cte2 as (
+select count(*) as tot from test_table2
+)
+select 
+c.imm_order/c2.tot*100
+from cte c, cte2 c2
+
+-----
+1174: pg 64
+
+with cte as (
+select distinct min(order_date) over ( partition by cust_id ) as min_order_dt , 
+cust_id, 
+pref_del_dt, 
+order_date
+from test_table2 ) 
+,cte2 as (
+select count(*) as imm_cust from cte  
+where min_order_dt=pref_del_dt
+)
+,cte3 as
+(
+select count(distinct cust_id) as tot from test_table2
+)
+select c2.imm_cust/c3.tot*100 from cte2 c2, cte3 c3
+
+
+
+----
+
+ 1179. Reformat Department Table
+
+
+
+SELECT 
+    id,
+    SUM(CASE WHEN month = 'Jan' THEN rev END) AS Jan_Revenue,
+    SUM(CASE WHEN month = 'Feb' THEN rev END) AS Feb_Revenue,
+    SUM(CASE WHEN month = 'Mar' THEN rev END) AS Mar_Revenue,
+    SUM(CASE WHEN month = 'Apr' THEN rev END) AS Apr_Revenue,
+    SUM(CASE WHEN month = 'May' THEN rev END) AS May_Revenue,
+    SUM(CASE WHEN month = 'Jun' THEN rev END) AS Jun_Revenue,
+    SUM(CASE WHEN month = 'Jul' THEN rev END) AS Jul_Revenue,
+    SUM(CASE WHEN month = 'Aug' THEN rev END) AS Aug_Revenue,
+    SUM(CASE WHEN month = 'Sep' THEN rev END) AS Sep_Revenue,
+    SUM(CASE WHEN month = 'Oct' THEN rev END) AS Oct_Revenue,
+    SUM(CASE WHEN month = 'Nov' THEN rev END) AS Nov_Revenue,
+    SUM(CASE WHEN month = 'Dec' THEN rev END) AS Dec_Revenue
+FROM test_table2
+GROUP BY id;
+
+
+
+-----
+
+1193. Monthly Transactions I - pg 68
+
+select distinct
+to_char(trans_date, 'mon') as month, country, 
+count(id) over (partition by country,to_char(trans_date, 'mon')) as count_c,
+sum(amount) over  (partition by country,to_char(trans_date, 'mon')) as amou,
+count(case when state1='approved' then 1 end) over (partition by country,to_char(trans_date, 'mon')) as app_count,
+sum(case when state1='approved' then amount end) over  (partition by country,to_char(trans_date, 'mon')) as app_amou
+from sqTransactions 
+
+
+-----
+
+1204. Last Person to Fit in the Elevator
+
+with cte as 
+(select p_id, p_name, weight, turn,
+sum(weight) over (order by turn) as s_w
+from test_table2
+),
+cte2 as 
+(
+SELECT p_name
+FROM cte
+WHERE s_w <= 1000
+ORDER BY s_w DESC)
+select p_name from cte2 
+where rownum=1
+
+
+
+-----
+
+
+
+1211. Queries Quality and Percentage
+
+
+
+
+
+select distinct
+q_name, 
+round(avg(rating/position) over ( partition by q_name),2)   as round,
+round(avg(case when rating <3 then 1 else 0 end) over ( partition by q_name)*100,2) as avg_cal
+from sq_queries
+
+
+
+----
+
+ 1212. Team Scores in Football 
+
+
+
+
+
+with cte as(
+select 
+match_id, host_team, guest_team, host_G, guest_g
+,(host_G - guest_g) as diff,
+(guest_g-host_g) as diff1
+from  test_table4
+),
+
+cte2 as(
+select match_id,  host_G, guest_g, diff,diff1,host_team, guest_team, 
+case 
+when diff=0 then 1
+ when diff>0 then 3
+ when diff < 0 then 0 
+end as host_team_score,
+case 
+when diff1=0 then 1
+ when diff1>0 then 3
+ when diff1 < 0 then 0 
+end as guest_team_score
+from cte
+),
+
+cte3 as
+(
+select host_team,--host_team_score,guest_team_score,
+sum(host_team_score) over ( partition by host_team) as host_team_score
+from cte2
+union
+select
+ guest_team,
+sum(guest_team_score) over ( partition by guest_team) as guest_team
+from cte2
+),
+
+cte4 as (
+select distinct
+host_team as team_name, sum(host_team_score) over (partition by host_team) as sum_score
+from cte3
+)
+
+select tt.team_name, NVL(c4.sum_score, 0) AS sum_score
+from cte4 c4
+right outer join test_table3 tt
+on c4.team_name=tt.team_id
+
+
+
+--------
+
+
+
+1225. Report Contiguous Dates
+
+
+
+with cte as 
+(
+select succ_date, 'success' as state from test_table4
+where to_char(succ_date,'dd-mon-yy') > to_date('31-Jan-25','dd-mon-yy')
+union
+select fail_date, 'fail' as state from test_table3
+where to_char(fail_date,'dd-mon-yy') >to_date('31-Jan-25','dd-mon-yy')
+)   , cte2 as (
+select succ_date, state, 
+row_number() over ( partition by state order by succ_date) as or_part,
+row_number() over ( order by succ_date) as row_num,
+row_number() over ( partition by state order by succ_date)-row_number() over ( order by succ_date) as diff
+from cte
+)
+select distinct  state, min(succ_date) over ( partition by diff), max(succ_date) over ( partition by diff)
+from cte2
+
+--------------------------------------------------------------------------------------------------
+
+rough work for 1225(
+
+
+
+with cte as 
+(
+select succ_date, 'success' as state from test_table4
+union
+select fail_date, 'fail' as state from test_table3
+)
+,cte2 as (
+select 
+state, 
+succ_date, 
+to_char(succ_date,'dd') as day,
+LAG(to_char(succ_date,'dd')) OVER( partition by state order by succ_date) AS lag_date,
+LEAD(to_char(succ_date,'dd')) OVER( partition by state order by succ_date) AS lead_date,
+row_number() over (partition by state order by succ_date) as test_col,
+row_number() over (order by succ_date) as test_col1
+from cte 
+where  to_char(succ_date,'Mon')='Feb' )
+
+,cte3 as
+(
+select state,
+succ_date,
+test_col,test_col1, (test_col - test_col1) as test_col_res,
+day,lag_date, (day-lag_date) as diff_lag,
+(lead_date-day) as lead_diff--, consecutive_count 
+from cte2
+),
+cte4 as(
+select 
+state, test_col,test_col1,test_col_res, 
+succ_date,
+day,
+diff_lag, lead_diff,
+COALESCE(diff_lag, lead_diff) as diffrence--, consecutive_count
+from cte3)
+select 
+state,succ_date , test_col, test_col1, test_col_res,
+day, 
+diff_lag, lead_diff,
+diffrence,
+min(succ_date) over (partition by test_col_res) as min,
+max(succ_date) over (partition by test_col_res) as max
+
+from cte4
+
+
+
+
+WITH Combined AS (
+    SELECT fail_date AS task_date, 'failed' AS period_state FROM test_table3
+     where  to_char(fail_date,'Mon')='Feb' 
+    UNION ALL
+     SELECT succ_date AS task_date, 'succeeded' AS period_state FROM test_table4
+    where  to_char(succ_date,'Mon')='Feb' 
+), Ranked AS (
+
+    SELECT task_date, period_state,
+           ROW_NUMBER() OVER (PARTITION BY period_state ORDER BY task_date)-
+           ROW_NUMBER() OVER (ORDER BY task_date) AS group_id
+    FROM Combined
+)
+, Grouped AS (
+    SELECT period_state,
+           MIN(task_date) AS start_date,
+           MAX(task_date) AS end_date
+    FROM Ranked
+    GROUP BY period_state, group_id
+)
+SELECT period_state, start_date, end_date
+FROM Grouped
+ORDER BY start_date;
+
+
+
+) rough end
+
+--------------------------------------------------------------------------------------------------
+
+
+1241. Number of Comments per Post
+
+
+
+
+select  
+distinct parent_id as post_id, 
+count(distinct sub_id) over (partition by parent_id) as number_of_comments
+from test_table3 where parent_id is not null
+order by parent_id
+
+
+
+----
+
+1251. Average Selling Price page 81
+
+----
+
+
+
+with cte as (
+select  pu.product_id as p_id, 
+pu.purchase_date as pd, 
+p.price as pp, 
+pu.units as u, 
+price*units as total,
+sum(pu.units) over ( partition by pu.product_id) as total_unit,
+count(pu.product_id) over ( partition by pu.product_id) as count_product
+from  Prices_UnitsSold pu
+inner join prices p
+on p.product_id=pu.product_id 
+and 
+pu.purchase_date between p.start_date and  p.end_date
+)
+,cte2 as(
+select distinct p_id, sum(total) over ( PARTITION by p_id) as total_amount, total_unit
+from cte)
+select p_id, round(total_amount/total_unit,2) as avg from cte2
+
+------
+
+
+1264. Page Recommendations - 83
+
+
+with cte as
+(
+select user_id, page_id 
+from test_table4 where 
+user_id in (
+        select user2 as friendwith1
+        from test_table3 where user1=1 
+        union
+        select user1 as friendwith1
+        from test_table3 where user2=1 
+        ) or user_id=1
+
+), cte2 as 
+(
+select *
+from cte where page_id not in ( select page_id from cte where user_id=1)
+)
+select distinct page_id from cte2
+
+----
+1270. All People Report to the Given Manager
+
+SELECT employee_id
+FROM sqlemployees
+START WITH employee_id = 1
+CONNECT BY PRIOR employee_id = manager_id
+AND employee_id != 1;
+
+
+
+----
+
+
+
+
+ 1280. Students and Examination  -- page 86
+
+
+with cte as (
+select sst.student_id sid, 
+    sst.student_name sn, 
+    ss.subject_name sun
+    from sqlstudents sst
+    CROSS JOIN sqlsubjects ss
+) 
+select distinct c.sid as student_id, c.sn as student_name , c.sun as subject_name, count(sqle.student_id) over ( partition by c.sid, c.sn,c.sun order by c.sid) as attended_exams
+from cte c
+left join sqlexaminations sqle 
+on c.sid=sqle.student_id 
+AND c.sun = sqle.subject_name
+order by c.sid
+
+
+
+-----
+
+1285. Find the Start and End Number of Continuous Ranges
+
+
+with cte as (
+select rev,
+row_number() over (order by rev) as row_num
+from test_table3
+),
+cte2 as
+(
+select rev, row_num, row_num-rev as diff
+from cte
+)
+select distinct -- rev,-- row_num, diff, 
+first_value(rev) over ( partition by diff order by rev) as star1t,
+last_value(rev) over (PARTITION by diff order by rev ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING ) as en1d
+from cte2
+
+
+------
+
+ 1294. Weather Type in Each Country
+
+
+
+with cte as 
+(
+select day, round(avg(weather_state) over (partition by country_id order by country_id),2) as avg_state, country_id,weather_state
+from sqweather where to_char(day,'mm')=11
+),
+cte2 as (
+select distinct case when avg_state <= 15 then 'Cold' 
+                   when avg_state >=25 then 'Hot'
+                   else 'Warm'
+         end as condition , country_id
+from cte
+)
+select sq.country_name, c2.condition
+from cte2 c2
+inner join sqcountries sq
+on sq.country_id=c2.country_id
+
+-----
+
+
+ 1303. Find the Team Size - Pg 93
+
+
+select emp_id, count(team_id) over ( partition by team_id)
+from test_table4
+
+
+
+
+----
+
+ 1308. Running Total for Different Genders - Pg 94
+
+
+
+select sum(score_points) over (partition by gender order by day), player_name, gender, day, score_points
+from scores 
+
+
+
+----
+
+ 1321. Restaurant Growth
+
+
+select visited_on, 
+sum(amount) over (order by visited_on rows between 6 PRECEDING and CURRENT row),
+round( avg(amount) over (order by visited_on rows between 6 PRECEDING and CURRENT row )  ,2) as avg_seven
+
+from
+customerpayments
+
+----
+
+
+
+ 1322. Ads Performance --- 99
+------
+
+
+
+
+with cte as(
+select  ad_id, count(action) over ( partition by ad_id,action order by ad_id,action), action
+from user_actions --where action <> 'i' 
+)
+,cte2 as(
+select ad_id,
+case when action='c' then 1 else 0 end as c,
+case when action='v' then 1 else 0  end as v
+from cte
+)
+,cte3 as(
+select c+v as sum, ad_id, c,v
+from cte2
+),
+cte4 as(
+select distinct ad_id--, sum(sum) over (partition by ad_id order by ad_id) as total_c_v, 
+,sum(c) over  (partition by ad_id order by ad_id) as c_sum,
+sum(v) over (partition by ad_id order by ad_id) as v_sum
+from cte3)
+select ad_id, case when v_sum<>0 or c_sum <>0 then round(c_sum/(c_sum+v_sum)* 100,2) else 0 end as ctr from cte4
+
+
+
+-----
+
+ 1327. List the Products Ordered in a Period
+
+
+with cte as
+(
+select product_id, sum(unit) over (partition by product_id) as sum_sales
+from orders1
+where to_char(order_date,'mon')='feb'
+)
+select distinct c.sum_sales, p.product_name
+from cte c
+join products1 p 
+on c.product_id=p.product_id 
+where sum_sales >= 100
+
+
+
+
+
+----
+
+1336. Number of Transactions per Visit
+
+
+ with cte as
+ (select v.user_id, vt.user_id, 
+v.visit_date, vt.transaction_date, 
+count(v.user_id) over ( partition by v.user_id order by v.visit_date) as user_visit_count, 
+ count(vt.user_id) over ( partition by vt.user_id,vt.transaction_date order by vt.transaction_date) as visit_count 
+ from visits v
+ left join vtransactions vt
+ on v.user_id=vt.user_id and v.visit_date= vt.transaction_date
+ )
+ select distinct  count(visit_count) over (partition by visit_count), visit_count from cte
+ 
+
+
+
+
+
+
+
+
+
+
+
+
